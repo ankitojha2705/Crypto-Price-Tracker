@@ -1,49 +1,49 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCryptoPrices } from "@/utils/fetchCrypto";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import PriceChart from "@/app/PriceChart";
+import "../styles/globals.css";
 
 export default function Home() {
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["cryptoPrices"],
     queryFn: fetchCryptoPrices,
   });
-  
-  const [search, setSearch] = useState("");
 
-  const filteredData = data
-    ? Object.entries(data).filter(([key]) => key.toLowerCase().includes(search.toLowerCase()))
-    : [];
+  const [selectedCrypto, setSelectedCrypto] = useState("bitcoin"); // Default selected crypto
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null; // Fixes hydration issue
+  if (isLoading) return <p>Loading live prices...</p>;
+  if (error) return <p>Error fetching data</p>;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
-      <h1 className="text-3xl font-bold mb-4">Crypto Price Tracker</h1>
+    <div className="container">
+      <h1 className="title">Crypto Price Tracker</h1>
 
-      <input
-        type="text"
-        placeholder="Search Cryptocurrency"
-        className="border p-2 rounded w-full max-w-md"
-        onChange={(e) => setSearch(e.target.value)}
-      />
-
-      <button
-        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        onClick={() => refetch()}
-      >
-        Refresh Prices
-      </button>
-
-      {isLoading && <p className="mt-4">Loading...</p>}
-      {error && <p className="mt-4 text-red-500">Error fetching data</p>}
-
-      <div className="mt-6 w-full max-w-md">
-        {filteredData.map(([name, value]) => (
-          <div key={name} className="bg-white shadow-md p-4 rounded mb-4">
-            <h2 className="text-xl font-semibold">{name.toUpperCase()}</h2>
-            <p className="text-lg">${value.usd}</p>
-          </div>
+      {/* Crypto List with Prices */}
+      <div className="crypto-list">
+        {Object.entries(data).map(([crypto, price]) => (
+          <button
+            key={crypto}
+            className={`crypto-btn ${selectedCrypto === crypto ? "active" : ""}`}
+            onClick={() => setSelectedCrypto(crypto)}
+          >
+            {crypto.toUpperCase()} - ${price.usd.toFixed(2)}
+          </button>
         ))}
       </div>
+
+      {/* Refresh Button */}
+      <button className="refresh-btn" onClick={() => refetch()}>
+        Refresh Live Prices
+      </button>
+
+      {/* Display Historical Price Chart */}
+      <PriceChart cryptoId={selectedCrypto} />
     </div>
   );
 }
